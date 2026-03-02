@@ -117,12 +117,10 @@ export const History: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageSize]);
 
   useEffect(() => {
     loadProjects(currentPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, pageSize]);
 
   const handlePageChange = useCallback((page: number) => {
@@ -268,8 +266,6 @@ export const History: React.FC = () => {
     } finally {
       setIsDeleting(false);
     }
-   
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setCurrentProject, show, projects, currentPage, loadProjects]);
 
   const handleDeleteProject = useCallback(async (e: React.MouseEvent, project: Project) => {
