@@ -23,30 +23,15 @@
   <a href="README_EN.md"><b>English</b></a>
 </p>
 
-<p>
-  <a href="https://github.com/Anionex/banana-slides/stargazers">
-    <img src="https://img.shields.io/github/stars/Anionex/banana-slides?style=square&color=FFD700" alt="stars">
-  </a>
-  <a href="https://github.com/Anionex/banana-slides/network">
-    <img src="https://img.shields.io/github/forks/Anionex/banana-slides?style=square&color=FFD700" alt="forks">
-  </a>
-  <a href="https://github.com/Anionex/banana-slides/watchers">
-    <img src="https://img.shields.io/github/watchers/Anionex/banana-slides?style=square&color=FFD700" alt="watchers">
-  </a>
-</p>
+[![GitHub Stars](https://img.shields.io/github/stars/Anionex/banana-slides?style=flat-square&color=FFD700)](https://github.com/Anionex/banana-slides/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/Anionex/banana-slides?style=flat-square&color=FFD700)](https://github.com/Anionex/banana-slides/network)
+[![GitHub Watchers](https://img.shields.io/github/watchers/Anionex/banana-slides?style=flat-square&color=FFD700)](https://github.com/Anionex/banana-slides/watchers)
 
 
+[![Version](https://img.shields.io/badge/version-v0.4.0-44cc11?style=flat-square)](https://github.com/Anionex/banana-slides)
+![Docker](https://img.shields.io/badge/Docker-Build-4A90D9?logo=docker&logoColor=white&style=flat-square)
+[![License](https://img.shields.io/github/license/Anionex/banana-slides?color=0055aa&style=flat-square)](https://github.com/Anionex/banana-slides/blob/main/LICENSE)
 
-
-<p>
-  <a href="https://github.com/Anionex/banana-slides">
-    <img src="https://img.shields.io/badge/version-v0.4.0-44cc11" alt="version">
-  </a>
-  <img src="https://img.shields.io/badge/Docker-Build-4A90D9?logo=docker&logoColor=white" alt="docker">
-  <a href="https://github.com/Anionex/banana-slides/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Anionex/banana-slides?color=0055aa" alt="license">
-  </a>
-</p>
 
 
 
