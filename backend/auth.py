@@ -166,5 +166,12 @@ def require_admin(fn: Callable):
 
 
 def can_access_project(user: AuthUser, project) -> bool:
-    """Current phase keeps projects shared across authenticated employees."""
-    return bool(user and user.authenticated and project is not None)
+    """Admins can access all projects; regular users only access their own."""
+    if not user or not user.authenticated or project is None:
+        return False
+    if user.is_admin:
+        return True
+
+    user_email = (user.email or '').strip().lower()
+    project_owner = (getattr(project, 'created_by_email', None) or '').strip().lower()
+    return bool(user_email and project_owner and user_email == project_owner)

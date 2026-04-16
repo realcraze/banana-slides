@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 from flask import Blueprint, request, jsonify, current_app, Response, stream_with_context
-from sqlalchemy import desc
+from sqlalchemy import desc, false
 from utils.validators import normalize_aspect_ratio
 from sqlalchemy.orm import joinedload
 from werkzeug.exceptions import BadRequest
@@ -40,6 +40,18 @@ def _ensure_project_access(project):
     if not can_access_project(get_current_user(), project):
         return error_response('PROJECT_ACCESS_DENIED', 'Project access denied', 403)
     return None
+
+
+def _project_visibility_query():
+    user = get_current_user()
+    query = Project.query
+    if user.is_admin:
+        return query
+
+    user_email = (user.email or '').strip().lower()
+    if not user_email:
+        return query.filter(false())
+    return query.filter(Project.created_by_email == user_email)
 
 
 def _get_project_reference_files_content(project_id: str) -> list:
@@ -178,10 +190,12 @@ def list_projects():
         limit = min(max(1, limit), 100)  # Between 1-100
         offset = max(0, offset)  # Non-negative
 
-        # Get total count for pagination
-        total = Project.query.count()
+        query = _project_visibility_query()
 
-        projects = Project.query\
+        # Get total count for pagination after applying per-user visibility.
+        total = query.count()
+
+        projects = query\
             .options(joinedload(Project.pages))\
             .order_by(desc(Project.updated_at))\
             .limit(limit)\

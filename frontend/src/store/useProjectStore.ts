@@ -73,6 +73,12 @@ const storeI18n = {
 };
 const t = getT(storeI18n);
 
+const isProjectAccessDenied = (error: any) => {
+  const status = error?.response?.status;
+  const code = error?.response?.data?.error?.code;
+  return status === 403 && code === 'PROJECT_ACCESS_DENIED';
+};
+
 interface ProjectState {
   // 状态
   currentProject: Project | null;
@@ -329,6 +335,10 @@ const debouncedUpdatePage = debounce(
           // 404错误：项目不存在，清除localStorage
           errorMessage = errorData?.error?.message || t('store.projectNotFound');
           shouldClearStorage = true;
+        } else if (isProjectAccessDenied(error)) {
+          // 当前登录用户无权访问本地缓存的项目，按过期项目处理，避免刷新时重复弹全局错误。
+          errorMessage = t('store.projectNotFound');
+          shouldClearStorage = true;
         } else if (errorData?.error?.message) {
           // 从后端错误格式中提取消息
           errorMessage = errorData.error.message;
@@ -350,9 +360,9 @@ const debouncedUpdatePage = debounce(
       // 如果项目不存在，清除localStorage并重置当前项目
       // 不显示错误toast，因为这通常是自动同步时发现的过期项目ID
       if (shouldClearStorage) {
-        console.warn('[syncProject] 项目不存在，清除localStorage');
+        console.warn('[syncProject] 项目不可访问，清除localStorage:', errorMessage);
         localStorage.removeItem('currentProjectId');
-        set({ currentProject: null });
+        set({ currentProject: null, error: null });
       } else {
         set({ error: normalizeErrorMessage(errorMessage) });
       }
