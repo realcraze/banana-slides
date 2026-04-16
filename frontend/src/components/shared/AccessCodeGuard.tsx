@@ -48,7 +48,12 @@ export function AccessCodeGuard({ children }: { children: ReactNode }) {
         localStorage.removeItem(STORAGE_KEY);
       }
       setStatus('prompt');
-    } catch {
+    } catch (e: unknown) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 401 || status === 403) {
+        setStatus('pass');
+        return;
+      }
       localStorage.removeItem(STORAGE_KEY);
       setStatus('connectError');
     }

@@ -3,6 +3,12 @@ import { test, expect } from '@playwright/test';
 // ===== Mock Tests =====
 
 test.describe('Access Code Guard (mocked)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/api/auth/me', route =>
+      route.fulfill({ json: { data: { authenticated: true, role: 'admin', auth_mode: 'disabled' } } })
+    );
+  });
+
   test('shows app directly when access code is disabled', async ({ page }) => {
     await page.route('**/api/access-code/check', route =>
       route.fulfill({ json: { data: { enabled: false } } })

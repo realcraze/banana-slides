@@ -102,8 +102,9 @@ const detailI18n = {
 import { Button, Loading, useToast, useConfirm, AiRefineInput, FilePreviewModal, ReferenceFileList, MaterialSelector } from '@/components/shared';
 import { DescriptionCard } from '@/components/preview/DescriptionCard';
 import { useProjectStore } from '@/store/useProjectStore';
-import { refineDescriptions, getTaskStatus, addPage, updateProject, getSettings, updateSettings } from '@/api/endpoints';
+import { refineDescriptions, getTaskStatus, addPage, updateProject, getPublicSettings, updateSettings } from '@/api/endpoints';
 import { exportProjectToMarkdown, parseMarkdownPages } from '@/utils/projectUtils';
+import { useAuth } from '@/auth/AuthContext';
 
 // 详细程度图标 — 暂时屏蔽，效果不够理想
 // const DETAIL_LEVEL_LINES: Record<string, number[]> = {
@@ -181,6 +182,7 @@ export const DetailEditor: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const t = useT(detailI18n);
+  const { isAdmin } = useAuth();
   const { projectId } = useParams<{ projectId: string }>();
   const fromHistory = (location.state as any)?.from === 'history';
   const importFileRef = useRef<HTMLInputElement>(null);
@@ -220,7 +222,7 @@ export const DetailEditor: React.FC = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await getSettings();
+        const res = await getPublicSettings();
         const s = res.data;
         if (!s) return;
         setDetailLevel('default');
@@ -248,15 +250,21 @@ export const DetailEditor: React.FC = () => {
     if (settingsSaveTimerRef.current) clearTimeout(settingsSaveTimerRef.current);
     settingsSaveTimerRef.current = setTimeout(async () => {
       try {
-        const res = await updateSettings(updates as any);
-        if (res.data) {
-          sessionStorage.setItem('banana-settings', JSON.stringify(res.data));
+        if (isAdmin) {
+          const res = await updateSettings(updates as any);
+          if (res.data) {
+            sessionStorage.setItem('banana-settings', JSON.stringify(res.data));
+          }
+        } else {
+          const cached = sessionStorage.getItem('banana-settings');
+          const parsed = cached ? JSON.parse(cached) : {};
+          sessionStorage.setItem('banana-settings', JSON.stringify({ ...parsed, ...updates }));
         }
       } catch (e) {
         console.error('Failed to save settings:', e);
       }
     }, 800);
-  }, []);
+  }, [isAdmin]);
 
   // 额外字段拖拽排序
   const fieldSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -1012,4 +1020,3 @@ export const DetailEditor: React.FC = () => {
     </div>
   );
 };
-

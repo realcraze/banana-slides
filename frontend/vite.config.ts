@@ -31,6 +31,25 @@ export default defineConfig(({ mode }) => {
   const backendPort = env.BACKEND_PORT || String(computeWorktreePort(5000))
   const frontendPort = Number(env.FRONTEND_PORT) || computeWorktreePort(3000)
   const backendUrl = `http://localhost:${backendPort}`
+  const devAuthEmailHeader = env.AUTH_TRUSTED_EMAIL_HEADER || 'X-Forwarded-Email'
+  const devAuthNameHeader = env.AUTH_TRUSTED_NAME_HEADER || 'X-Forwarded-Name'
+  const devAuthEmail = env.DEV_AUTH_PROXY_EMAIL || ''
+  const devAuthName = env.DEV_AUTH_PROXY_NAME || ''
+
+  const withDevAuthHeaders = () => ({
+    target: backendUrl,
+    changeOrigin: true,
+    configure: (proxy: any) => {
+      proxy.on('proxyReq', (proxyReq: any) => {
+        if (devAuthEmail) {
+          proxyReq.setHeader(devAuthEmailHeader, devAuthEmail)
+        }
+        if (devAuthName) {
+          proxyReq.setHeader(devAuthNameHeader, devAuthName)
+        }
+      })
+    },
+  })
   
   return {
     envDir,
@@ -52,18 +71,15 @@ export default defineConfig(({ mode }) => {
       proxy: {
         // API 请求代理到后端（端口从环境变量 BACKEND_PORT 读取）
         '/api': {
-          target: backendUrl,
-          changeOrigin: true,
+          ...withDevAuthHeaders(),
         },
         // 文件服务代理到后端
         '/files': {
-          target: backendUrl,
-          changeOrigin: true,
+          ...withDevAuthHeaders(),
         },
         // 健康检查代理到后端
         '/health': {
-          target: backendUrl,
-          changeOrigin: true,
+          ...withDevAuthHeaders(),
         },
       },
     },

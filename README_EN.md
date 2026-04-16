@@ -296,7 +296,7 @@ Google Cloud Vertex AI allows calling Gemini models through GCP service accounts
 
 **⚡ Use Pre-built Images (Recommended)**
 
-The project provides pre-built frontend and backend images on Docker Hub (synchronized with the latest version of the main branch), allowing you to skip local build steps for rapid deployment:
+The project provides a pre-built backend image on Docker Hub (synchronized with the latest version of the main branch), allowing you to skip backend local build steps for rapid deployment. Frontend static assets are exported by the `frontend-build` service and should be hosted by your external Nginx:
 
 ```bash
 
@@ -307,7 +307,6 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 
 Image names:
-- `anoinex/banana-slides-frontend:latest`
 - `anoinex/banana-slides-backend:latest`
 
 **Build images from scratch**
@@ -331,10 +330,19 @@ docker compose up -d
 
 3. **Access the Application**
 
-- Frontend: http://localhost:3000
+- Frontend asset export directory: `./frontend-dist`
 - Backend API: http://localhost:5000
+- Public entrypoint: serve `./frontend-dist` with your external Nginx and reverse-proxy `/api`, `/files`, and `/health`
 
-4. **View Logs**
+4. **Export Frontend Assets**
+
+`docker compose up --build -d` builds and exports frontend assets automatically.
+
+```bash
+docker compose up --build -d
+```
+
+5. **View Logs**
 
 ```bash
 
@@ -348,24 +356,23 @@ docker logs --tail 200 banana-slides-backend
 
 docker logs -f --tail 100 banana-slides-backend
 
-# View Frontend Logs (Last 100 Lines)
-
-docker logs --tail 100 banana-slides-frontend
+# View Frontend Export Logs
+docker logs banana-slides-frontend-build
 ```
 
-5. **Stop Services**
+6. **Stop Services**
 
 ```bash
 docker compose down
 ```
 
-6. **Update Project**
+7. **Update Project**
 
 **Using Pre-built Images (docker-compose.prod.yml)**
 
 ```bash
 docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up --build -d
 ```
 
 **Using Local Build (docker-compose.yml)**
@@ -378,6 +385,14 @@ docker compose down
 docker compose build --no-cache
 docker compose up -d
 ```
+
+8. **Configure External Nginx**
+
+The repository includes an example config: [docker/nginx-external.conf.example](/Users/bogao/Documents/repo/banana-slides/docker/nginx-external.conf.example)
+
+- `root` should point to the exported `frontend-dist` directory
+- `/api`, `/files`, and `/health` should be reverse-proxied to the backend
+- If you add `oauth2-proxy`, keep authentication in the external Nginx layer
 
 **Note: Thanks to our talented developer friend [@ShellMonster](https://github.com/ShellMonster/) for providing the [Newbie Deployment Tutorial](https://github.com/ShellMonster/banana-slides/blob/docs-deploy-tutorial/docs/NEWBIE_DEPLOYMENT.md). Specially designed for beginners with no server deployment experience, you can [click the link](https://github.com/ShellMonster/banana-slides/blob/docs-deploy-tutorial/docs/NEWBIE_DEPLOYMENT.md) to view it.**
 

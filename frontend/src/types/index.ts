@@ -78,6 +78,7 @@ export interface Project {
   export_inpaint_method?: ExportInpaintMethod; // 背景图获取方法
   export_allow_partial?: boolean; // 是否允许返回半成品（导出出错时继续而非停止）
   image_aspect_ratio?: string; // 画面比例（如 16:9, 4:3）
+  created_by_email?: string | null;
   status: ProjectStatus;
   pages: Page[];
   created_at: string;
@@ -168,3 +169,12 @@ export interface Settings {
   updated_at?: string;
 }
 
+export interface AuthMe {
+  authenticated: boolean;
+  role: 'admin' | 'user';
+  email?: string | null;
+  name?: string | null;
+  avatar_url?: string | null;
+  auth_mode: 'disabled' | 'access_code' | 'proxy_header' | string;
+  auth_bypassed?: boolean;
+}

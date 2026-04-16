@@ -16,6 +16,7 @@ from sqlalchemy.orm import joinedload
 from werkzeug.exceptions import BadRequest
 from werkzeug.utils import secure_filename
 
+from auth import can_access_project, get_current_user
 from models import db, Project, Page, Task, ReferenceFile
 from services import ProjectContext, FileService
 from services.ai_service_manager import get_ai_service
@@ -33,6 +34,12 @@ from utils import (
 logger = logging.getLogger(__name__)
 
 project_bp = Blueprint('projects', __name__, url_prefix='/api/projects')
+
+
+def _ensure_project_access(project):
+    if not can_access_project(get_current_user(), project):
+        return error_response('PROJECT_ACCESS_DENIED', 'Project access denied', 403)
+    return None
 
 
 def _get_project_reference_files_content(project_id: str) -> list:
@@ -238,6 +245,7 @@ def create_project():
             description_text=data.get('description_text'),
             template_style=data.get('template_style'),
             image_aspect_ratio=image_aspect_ratio,
+            created_by_email=get_current_user().email,
             status='DRAFT'
         )
         
@@ -277,6 +285,9 @@ def get_project(project_id):
         
         if not project:
             return not_found('Project')
+        access_error = _ensure_project_access(project)
+        if access_error:
+            return access_error
         
         return success_response(project.to_dict(include_pages=True))
     
@@ -305,6 +316,9 @@ def update_project(project_id):
         
         if not project:
             return not_found('Project')
+        access_error = _ensure_project_access(project)
+        if access_error:
+            return access_error
         
         data = request.get_json()
         
@@ -385,6 +399,9 @@ def delete_project(project_id):
         
         if not project:
             return not_found('Project')
+        access_error = _ensure_project_access(project)
+        if access_error:
+            return access_error
         
         # Delete project files
         from services import FileService
@@ -1363,6 +1380,7 @@ def create_ppt_renovation_project():
         project = Project(
             creation_type='ppt_renovation',
             template_style=template_style,
+            created_by_email=get_current_user().email,
             status='DRAFT'
         )
         db.session.add(project)

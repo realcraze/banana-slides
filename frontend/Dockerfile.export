@@ -1,0 +1,29 @@
+# 镜像源配置参数（可通过 build args 覆盖）
+ARG DOCKER_REGISTRY=
+ARG NPM_REGISTRY=
+
+FROM ${DOCKER_REGISTRY:-}node:18-alpine AS builder
+
+ARG NPM_REGISTRY=
+
+WORKDIR /app
+
+COPY frontend/package.json ./
+COPY frontend/package-lock.json* ./
+RUN if [ -n "$NPM_REGISTRY" ]; then \
+        npm config set registry "$NPM_REGISTRY"; \
+    fi && \
+    (npm install --frozen-lockfile || npm install)
+
+COPY frontend/ ./
+RUN npm run build
+
+FROM ${DOCKER_REGISTRY:-}alpine:3.20
+
+WORKDIR /app
+
+COPY --from=builder /app/dist /app/dist
+
+VOLUME ["/out"]
+
+CMD ["sh", "-c", "rm -rf /out/* && cp -R /app/dist/. /out/ && echo 'Frontend assets exported to /out'"]

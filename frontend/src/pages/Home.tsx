@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, FileText, FileEdit, ImagePlus, Paperclip, Palette, Lightbulb, Search, Settings, FolderOpen, HelpCircle, Sun, Moon, Globe, Monitor, ChevronDown, Upload, RefreshCw } from 'lucide-react';
-import { Button, Card, useToast, MaterialGeneratorModal, MaterialCenterModal, MaterialSelector, ReferenceFileList, ReferenceFileSelector, FilePreviewModal, HelpModal, Footer, GithubRepoCard, TextStyleSelector } from '@/components/shared';
+import { Button, Card, useToast, MaterialGeneratorModal, MaterialCenterModal, MaterialSelector, ReferenceFileList, ReferenceFileSelector, FilePreviewModal, HelpModal, Footer, GithubRepoCard, TextStyleSelector, UserMenu } from '@/components/shared';
 import { MarkdownTextarea, type MarkdownTextareaRef } from '@/components/shared/MarkdownTextarea';
 import { TemplateSelector, getTemplateFile } from '@/components/shared/TemplateSelector';
 import { listUserTemplates, type UserTemplate, uploadReferenceFile, type ReferenceFile, associateFileToProject, triggerFileParse, associateMaterialsToProject, createPptRenovationProject } from '@/api/endpoints';
@@ -13,6 +13,7 @@ import { useImagePaste, buildMaterialsMarkdown } from '@/hooks/useImagePaste';
 import type { Material } from '@/types';
 import { useT } from '@/hooks/useT';
 import { ASPECT_RATIO_OPTIONS } from '@/config/aspectRatio';
+import { useAuth } from '@/auth/AuthContext';
 
 type CreationType = 'idea' | 'outline' | 'description' | 'ppt_renovation';
 
@@ -182,6 +183,7 @@ export const Home: React.FC = () => {
   const { i18n } = useTranslation();
   const t = useT(homeI18n); // 组件内翻译 + 自动 fallback 到全局
   const { theme, isDark, setTheme } = useTheme();
+  const { isAdmin } = useAuth();
   const { initializeProject, isGlobalLoading } = useProjectStore();
   const { show, ToastContainer } = useToast();
   
@@ -757,15 +759,17 @@ export const Home: React.FC = () => {
               <span className="hidden sm:inline">{t('nav.history')}</span>
               <span className="sm:hidden">{t('nav.history')}</span>
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={<Settings size={16} className="md:w-[18px] md:h-[18px]" />}
-              onClick={() => navigate('/settings')}
-              className="text-xs md:text-sm hover:bg-banana-100/60 hover:shadow-sm hover:scale-105 transition-all duration-200 font-medium"
-            >
-              <span className="hidden md:inline">{t('nav.settings')}</span>
-            </Button>
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<Settings size={16} className="md:w-[18px] md:h-[18px]" />}
+                onClick={() => navigate('/settings')}
+                className="text-xs md:text-sm hover:bg-banana-100/60 hover:shadow-sm hover:scale-105 transition-all duration-200 font-medium"
+              >
+                <span className="hidden md:inline">{t('nav.settings')}</span>
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -838,6 +842,7 @@ export const Home: React.FC = () => {
             <div className="h-5 w-px bg-gray-300 dark:bg-border-primary mx-1" />
             {/* GitHub 仓库卡片 */}
             <GithubRepoCard />
+            <UserMenu />
             {/* 分隔线 */}
           </div>
         </div>
@@ -1204,6 +1209,7 @@ export const Home: React.FC = () => {
       <HelpModal
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
+        canOpenSettings={isAdmin}
       />
       {/* Footer */}
       <Footer />

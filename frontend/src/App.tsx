@@ -9,6 +9,7 @@ import { SlidePreview } from './pages/SlidePreview';
 import { SettingsPage } from './pages/Settings';
 import { useProjectStore } from './store/useProjectStore';
 import { useToast, AccessCodeGuard } from './components/shared';
+import { AdminRoute, AuthGuard, AuthProvider } from './auth/AuthContext';
 
 function App() {
   const { currentProject, syncProject, error, setError } = useProjectStore();
@@ -32,22 +33,25 @@ function App() {
 
   return (
     <AccessCodeGuard>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/landing" element={<Landing />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/project/:projectId/outline" element={<OutlineEditor />} />
-          <Route path="/project/:projectId/detail" element={<DetailEditor />} />
-          <Route path="/project/:projectId/preview" element={<SlidePreview />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        <ToastContainer />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <AuthGuard>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/landing" element={<Landing />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/settings" element={<AdminRoute><SettingsPage /></AdminRoute>} />
+              <Route path="/project/:projectId/outline" element={<OutlineEditor />} />
+              <Route path="/project/:projectId/detail" element={<DetailEditor />} />
+              <Route path="/project/:projectId/preview" element={<SlidePreview />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <ToastContainer />
+          </AuthGuard>
+        </BrowserRouter>
+      </AuthProvider>
     </AccessCodeGuard>
   );
 }
 
 export default App;
-

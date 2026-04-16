@@ -123,13 +123,14 @@ type PageRenderer = (ctx: {
   lang: 'zh' | 'en';
   navigate: ReturnType<typeof useNavigate>;
   onClose: () => void;
+  canOpenSettings: boolean;
   showcaseIdx: number;
   setShowcaseIdx: (i: number) => void;
   expandedFeat: number | null;
   setExpandedFeat: (i: number | null) => void;
 }) => React.ReactNode;
 
-const renderSetupPage: PageRenderer = ({ t, lang, navigate, onClose }) => {
+const renderSetupPage: PageRenderer = ({ t, lang, navigate, onClose, canOpenSettings }) => {
   const steps = [
     { num: '1', bg: 'bg-banana-500', content: (
       <div className="flex-1 space-y-2">
@@ -196,11 +197,13 @@ const renderSetupPage: PageRenderer = ({ t, lang, navigate, onClose }) => {
         </a>
       </div>
 
-      <div className="flex justify-center pt-2">
-        <Button onClick={() => { onClose(); navigate('/settings'); }} className="bg-banana-500 hover:bg-banana-600 text-black dark:text-white shadow-lg" icon={<Settings size={18} />}>
-          {t('guide.settingsBtn')}
-        </Button>
-      </div>
+      {canOpenSettings ? (
+        <div className="flex justify-center pt-2">
+          <Button onClick={() => { onClose(); navigate('/settings'); }} className="bg-banana-500 hover:bg-banana-600 text-black dark:text-white shadow-lg" icon={<Settings size={18} />}>
+            {t('guide.settingsBtn')}
+          </Button>
+        </div>
+      ) : null}
 
       <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
         <p className="text-xs text-blue-800">
@@ -319,9 +322,10 @@ const PAGES: PageDef[] = [
 interface HelpModalProps {
   isOpen: boolean;
   onClose: () => void;
+  canOpenSettings?: boolean;
 }
 
-export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
+export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, canOpenSettings = true }) => {
   const t = useT(i18nDict);
   const { i18n } = useTranslation();
   const lang: 'zh' | 'en' = i18n.language?.startsWith('zh') ? 'zh' : 'en';
@@ -359,7 +363,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
 
         {/* body */}
         <div className="min-h-[400px]">
-          {page.render({ t, lang, navigate, onClose, showcaseIdx, setShowcaseIdx, expandedFeat, setExpandedFeat })}
+          {page.render({ t, lang, navigate, onClose, canOpenSettings, showcaseIdx, setShowcaseIdx, expandedFeat, setExpandedFeat })}
         </div>
 
         {/* footer */}
