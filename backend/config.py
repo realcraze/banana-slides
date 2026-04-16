@@ -11,10 +11,30 @@ _current_file = os.path.realpath(__file__)  # 使用realpath解析所有符号�
 BASE_DIR = os.path.dirname(_current_file)
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
 
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
 # Flask配置
 class Config:
     """Base configuration"""
     SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-change-this')
+    ACCESS_CODE = os.getenv('ACCESS_CODE', '').strip()
+    AUTH_MODE = os.getenv('AUTH_MODE', 'access_code' if ACCESS_CODE else 'disabled').strip().lower()
+    AUTH_TRUSTED_EMAIL_HEADER = os.getenv('AUTH_TRUSTED_EMAIL_HEADER', 'X-Forwarded-Email').strip() or 'X-Forwarded-Email'
+    AUTH_TRUSTED_NAME_HEADER = os.getenv('AUTH_TRUSTED_NAME_HEADER', 'X-Forwarded-Name').strip() or 'X-Forwarded-Name'
+    AUTH_ALLOWED_EMAIL_DOMAIN = os.getenv('AUTH_ALLOWED_EMAIL_DOMAIN', '').strip().lower()
+    AUTH_ADMIN_EMAILS = os.getenv('AUTH_ADMIN_EMAILS', '').strip()
+    AUTH_FAIL_OPEN = _env_bool('AUTH_FAIL_OPEN', False)
+    AVATAR_STORAGE_DIR = os.getenv('AVATAR_STORAGE_DIR', '').strip()
+    AVATAR_PUBLIC_PATH = os.getenv('AVATAR_PUBLIC_PATH', '/avatars').strip() or '/avatars'
+    AVATAR_CACHE_SECONDS = int(os.getenv('AVATAR_CACHE_SECONDS', '86400'))
+    ENTRA_TENANT_ID = os.getenv('ENTRA_TENANT_ID', '').strip() or os.getenv('OAUTH2_PROXY_TENANT_ID', '').strip()
+    ENTRA_CLIENT_ID = os.getenv('ENTRA_CLIENT_ID', '').strip() or os.getenv('OAUTH2_PROXY_CLIENT_ID', '').strip()
+    ENTRA_CLIENT_SECRET = os.getenv('ENTRA_CLIENT_SECRET', '').strip() or os.getenv('OAUTH2_PROXY_CLIENT_SECRET', '').strip()
     
     # 数据库配置
     # Use absolute path to avoid WSL path issues

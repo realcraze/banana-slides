@@ -6,7 +6,9 @@ from .response import (
     not_found, 
     invalid_status,
     ai_service_error,
-    rate_limit_error
+    rate_limit_error,
+    unauthorized,
+    forbidden,
 )
 from .validators import validate_project_status, validate_page_status, allowed_file
 from .path_utils import convert_mineru_path_to_local, find_mineru_file_with_prefix, find_file_with_prefix
@@ -21,6 +23,8 @@ __all__ = [
     'invalid_status',
     'ai_service_error',
     'rate_limit_error',
+    'unauthorized',
+    'forbidden',
     'validate_project_status',
     'validate_page_status',
     'allowed_file',
@@ -32,4 +36,3 @@ __all__ = [
     'parse_page_ids_from_body',
     'get_filtered_pages'
 ]
-

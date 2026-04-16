@@ -3,12 +3,14 @@
 import json
 import logging
 import os
+import re
 import shutil
 import tempfile
 from pathlib import Path
 from datetime import datetime, timezone
 from contextlib import contextmanager
 from flask import Blueprint, request, current_app
+from auth import require_admin
 from PIL import Image
 from models import db, Settings, Task
 from utils import success_response, error_response, bad_request
@@ -26,6 +28,18 @@ ALLOWED_PROVIDER_FORMATS = {"openai", "gemini", "lazyllm"} | LAZYLLM_VENDORS
 settings_bp = Blueprint(
     "settings", __name__, url_prefix="/api/settings"
 )
+
+
+def _sanitize_sensitive_error(message: str) -> str:
+    """Redact obvious secrets from upstream/service errors before returning them."""
+    if not message:
+        return "Service request failed"
+
+    sanitized = str(message)
+    sanitized = re.sub(r'(?i)(api[_ -]?key|token|authorization)([^\\n]*)', r'\1=[REDACTED]', sanitized)
+    sanitized = re.sub(r'(?i)bearer\\s+[A-Za-z0-9._\\-]+', 'Bearer [REDACTED]', sanitized)
+    sanitized = re.sub(r'([A-Za-z0-9_\\-]{24,})', '[REDACTED]', sanitized)
+    return sanitized[:300]
 
 
 @contextmanager
@@ -148,6 +162,7 @@ def temporary_settings_override(settings_override: dict):
 
 
 @settings_bp.route("/", methods=["GET"], strict_slashes=False)
+@require_admin
 def get_settings():
     """
     GET /api/settings - Get application settings
@@ -164,7 +179,28 @@ def get_settings():
         )
 
 
+@settings_bp.route("/public", methods=["GET"], strict_slashes=False)
+def get_public_settings():
+    """Return a safe subset of global settings for authenticated users."""
+    try:
+        settings = Settings.get_settings().to_dict()
+        return success_response({
+            'image_resolution': settings.get('image_resolution'),
+            'description_generation_mode': settings.get('description_generation_mode'),
+            'description_extra_fields': settings.get('description_extra_fields', []),
+            'image_prompt_extra_fields': settings.get('image_prompt_extra_fields', []),
+        })
+    except Exception as e:
+        logger.error(f"Error getting public settings: {str(e)}")
+        return error_response(
+            "GET_PUBLIC_SETTINGS_ERROR",
+            f"Failed to get public settings: {str(e)}",
+            500,
+        )
+
+
 @settings_bp.route("/", methods=["PUT"], strict_slashes=False)
+@require_admin
 def update_settings():
     """
     PUT /api/settings - Update application settings
@@ -359,6 +395,7 @@ def update_settings():
 
 
 @settings_bp.route("/reset", methods=["POST"], strict_slashes=False)
+@require_admin
 def reset_settings():
     """
     POST /api/settings/reset - Reset settings to default values
@@ -418,6 +455,7 @@ def reset_settings():
 
 
 @settings_bp.route("/active-config", methods=["GET"], strict_slashes=False)
+@require_admin
 def get_active_config():
     """
     GET /api/settings/active-config - Return current app.config values for AI settings.
@@ -433,6 +471,7 @@ def get_active_config():
 
 
 @settings_bp.route("/verify", methods=["POST"], strict_slashes=False)
+@require_admin
 def verify_api_key():
     """
     POST /api/settings/verify - 验证模型配置是否可用
@@ -518,7 +557,7 @@ def verify_api_key():
                 elif "timeout" in error_msg.lower():
                     message = "API 调用超时，请在设置中检查网络连接和 API Base URL"
                 else:
-                    message = f"API 调用失败，请在设置中检查配置: {error_msg}"
+                    message = "API 调用失败，请在设置中检查配置"
 
                 return success_response({
                     "available": False,
@@ -967,13 +1006,14 @@ def _run_test_async(task_id: str, test_name: str, test_settings: dict, app):
             task = Task.query.get(task_id)
             if task:
                 task.status = 'FAILED'
-                task.error_message = error_msg
+                task.error_message = _sanitize_sensitive_error(error_msg)
                 task.completed_at = datetime.now(timezone.utc)
                 db.session.commit()
 
 
 
 @settings_bp.route("/tests/<test_name>", methods=["POST"], strict_slashes=False)
+@require_admin
 def run_settings_test(test_name: str):
     """
     POST /api/settings/tests/<test_name> - 启动异步服务测试
@@ -1079,6 +1119,7 @@ def run_settings_test(test_name: str):
 
 
 @settings_bp.route("/tests/<task_id>/status", methods=["GET"], strict_slashes=False)
+@require_admin
 def get_test_status(task_id: str):
     """
     GET /api/settings/tests/<task_id>/status - 查询测试任务状态
@@ -1114,7 +1155,7 @@ def get_test_status(task_id: str):
 
         # 如果任务失败，包含错误信息
         elif task.status == 'FAILED':
-            response_data['error'] = task.error_message
+            response_data['error'] = _sanitize_sensitive_error(task.error_message)
 
         return success_response(response_data)
 

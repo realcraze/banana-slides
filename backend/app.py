@@ -18,14 +18,16 @@ _project_root = Path(__file__).parent.parent
 _env_file = _project_root / '.env'
 load_dotenv(dotenv_path=_env_file, override=True)
 
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
+from auth import is_api_auth_exempt_path, load_current_user
 from models import db
 from config import Config
 from controllers.material_controller import material_bp, material_global_bp
 from controllers.reference_file_controller import reference_file_bp
 from controllers.settings_controller import settings_bp
-from controllers import project_bp, page_bp, template_bp, user_template_bp, export_bp, file_bp, style_bp
+from controllers import auth_bp, project_bp, page_bp, template_bp, user_template_bp, export_bp, file_bp, style_bp
+from utils import unauthorized
 
 
 # Enable SQLite WAL mode for all connections
@@ -58,6 +60,8 @@ def create_app():
     
     # Override with environment-specific paths (use absolute path)
     backend_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(backend_dir)
+    app.config['PROJECT_ROOT'] = project_root
     instance_dir = os.path.join(backend_dir, 'instance')
     os.makedirs(instance_dir, exist_ok=True)
     
@@ -65,10 +69,13 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
     
     # Ensure upload folder exists
-    project_root = os.path.dirname(backend_dir)
     upload_folder = os.path.join(project_root, 'uploads')
     os.makedirs(upload_folder, exist_ok=True)
     app.config['UPLOAD_FOLDER'] = upload_folder
+
+    avatar_storage_dir = app.config.get('AVATAR_STORAGE_DIR') or os.path.join(project_root, 'frontend', 'public', 'avatars')
+    os.makedirs(avatar_storage_dir, exist_ok=True)
+    app.config['AVATAR_STORAGE_DIR'] = avatar_storage_dir
     
     # CORS configuration (parse from environment)
     raw_cors = os.getenv('CORS_ORIGINS', 'http://localhost:3000')
@@ -107,6 +114,7 @@ def create_app():
     app.register_blueprint(user_template_bp)
     app.register_blueprint(export_bp)
     app.register_blueprint(file_bp)
+    app.register_blueprint(auth_bp)
     app.register_blueprint(material_bp)
     app.register_blueprint(material_global_bp)
     app.register_blueprint(reference_file_bp, url_prefix='/api/reference-files')
@@ -117,21 +125,16 @@ def create_app():
         # Load settings from database and sync to app.config
         _load_settings_to_config(app)
 
-    # Access code enforcement on all /api/ routes
+    # Unified auth enforcement on all /api/ routes
     @app.before_request
-    def _enforce_access_code():
-        from flask import request, jsonify
-        expected = os.getenv('ACCESS_CODE', '').strip()
-        if not expected:
-            return  # not enabled
+    def _authenticate_request():
+        user = load_current_user()
         if not request.path.startswith('/api/'):
-            return  # non-API routes (health, static, etc.)
-        if request.path.startswith('/api/access-code/'):
-            return  # allow check/verify endpoints
-        code = request.headers.get('X-Access-Code', '')
-        if hmac.compare_digest(code, expected):
             return
-        return jsonify({'error': 'Access code required'}), 403
+        if is_api_auth_exempt_path(request.path):
+            return
+        if not user.authenticated:
+            return unauthorized()
 
     # Health check endpoint
     @app.route('/health')
@@ -142,14 +145,16 @@ def create_app():
     @app.route('/api/access-code/check', methods=['GET'])
     def check_access_code():
         """Check if access code protection is enabled"""
-        enabled = bool(os.getenv('ACCESS_CODE', '').strip())
-        return {'data': {'enabled': enabled}}
+        enabled = app.config.get('AUTH_MODE') == 'access_code' and bool(app.config.get('ACCESS_CODE'))
+        return {'data': {'enabled': enabled, 'mode': app.config.get('AUTH_MODE')}}
 
     @app.route('/api/access-code/verify', methods=['POST'])
     def verify_access_code():
         """Verify the provided access code"""
         from flask import request, jsonify
-        expected = os.getenv('ACCESS_CODE', '').strip()
+        if app.config.get('AUTH_MODE') != 'access_code':
+            return {'data': {'valid': True}}
+        expected = app.config.get('ACCESS_CODE', '').strip()
         if not expected:
             return {'data': {'valid': True}}
         code = (request.json or {}).get('code', '')

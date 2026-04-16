@@ -16,6 +16,11 @@ services:
     # 从 .env 文件自动加载所有环境变量
     env_file:
       - .env
+    environment:
+      AUTH_TRUSTED_EMAIL_HEADER: X-Forwarded-Email
+      AUTH_TRUSTED_NAME_HEADER: X-Forwarded-User
+      AVATAR_STORAGE_DIR: /app/frontend/public/avatars
+      AVATAR_PUBLIC_PATH: /avatars
     # Uncomment below to use Vertex AI with a GCP service-account key
     # environment:
     #   - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-sa-key.json
@@ -24,6 +29,8 @@ services:
       - ./backend/instance:/app/backend/instance
       # 持久化上传的文件
       - ./uploads:/app/uploads
+      # 持久化微软头像缓存，前端通过 /avatars 访问
+      - ./frontend/public/avatars:/app/frontend/public/avatars
       # Mount GCP service-account key (Vertex AI only — uncomment if needed)
       # - ./gcp-service-account.json:/app/gcp-sa-key.json:ro
     restart: unless-stopped
@@ -40,17 +47,46 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: frontend/Dockerfile
-      # Windows 兼容性：禁用符号链接跟随 + 前端构建参数
+      dockerfile: frontend/Dockerfile.local
       args:
-        DOCKER_BUILDKIT: 1
         DOCKER_REGISTRY: ${DOCKER_REGISTRY:-}
         NPM_REGISTRY: ${NPM_REGISTRY:-}
     container_name: banana-slides-frontend
-    ports:
-      - "${FRONTEND_PORT:-3000}:80"
     depends_on:
       - backend
+    volumes:
+      - ./frontend/public/avatars:/srv/avatars:ro
+    restart: unless-stopped
+    networks:
+      - banana-slides-network
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.12.0
+    container_name: banana-slides-oauth2-proxy
+    depends_on:
+      - frontend
+    ports:
+      - "${OAUTH2_PROXY_PORT:-4180}:4180"
+    command:
+      - --provider=entra-id
+      - --http-address=0.0.0.0:4180
+      - --redirect-url=http://localhost:${OAUTH2_PROXY_PORT:-4180}/oauth2/callback
+      - --upstream=http://frontend:80
+      - --client-id=${OAUTH2_PROXY_CLIENT_ID}
+      - --client-secret=${OAUTH2_PROXY_CLIENT_SECRET}
+      - --cookie-secret=${OAUTH2_PROXY_COOKIE_SECRET}
+      - --email-domain=${OAUTH2_PROXY_EMAIL_DOMAIN}
+      - --oidc-issuer-url=https://login.microsoftonline.com/${OAUTH2_PROXY_TENANT_ID}/v2.0
+      - --scope=openid profile email User.Read
+      - --cookie-secure=false
+      - --pass-access-token=true
+      - --pass-authorization-header=true
+      - --pass-user-headers=true
+      - --pass-basic-auth=false
+      - --skip-provider-button=true
+      - --skip-auth-route=GET=^/$
+      - --skip-auth-route=GET=^/[^/]*$
+      - --skip-auth-route=GET=^/assets/.*
     restart: unless-stopped
     networks:
       - banana-slides-network
@@ -62,4 +98,3 @@ networks:
 volumes:
   backend-data:
   uploads-data:
-

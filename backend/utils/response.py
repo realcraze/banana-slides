@@ -69,3 +69,10 @@ def ai_service_error(message: str = "AI service error"):
 def rate_limit_error(message: str = "Rate limit exceeded"):
     return error_response("RATE_LIMIT_EXCEEDED", message, 429)
 
+
+def unauthorized(message: str = "Authentication required"):
+    return error_response("AUTH_REQUIRED", message, 401)
+
+
+def forbidden(message: str = "Forbidden"):
+    return error_response("FORBIDDEN", message, 403)

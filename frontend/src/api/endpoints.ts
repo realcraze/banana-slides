@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Project, Task, ApiResponse, CreateProjectRequest, Page } from '@/types';
+import type { Project, Task, ApiResponse, CreateProjectRequest, Page, AuthMe } from '@/types';
 import type { Settings } from '../types/index';
 
 // ===== 访问口令 API =====
@@ -11,6 +11,11 @@ export const checkAccessCode = async (): Promise<ApiResponse<{ enabled: boolean 
 
 export const verifyAccessCode = async (code: string): Promise<ApiResponse<{ valid: boolean }>> => {
   const response = await apiClient.post<ApiResponse<{ valid: boolean }>>('/api/access-code/verify', { code });
+  return response.data;
+};
+
+export const getAuthMe = async (): Promise<ApiResponse<AuthMe>> => {
+  const response = await apiClient.get<ApiResponse<AuthMe>>('/api/auth/me');
   return response.data;
 };
 
@@ -1060,6 +1065,11 @@ export const getStoredOutputLanguage = async (): Promise<OutputLanguage> => {
  */
 export const getSettings = async (): Promise<ApiResponse<Settings>> => {
   const response = await apiClient.get<ApiResponse<Settings>>('/api/settings');
+  return response.data;
+};
+
+export const getPublicSettings = async (): Promise<ApiResponse<Partial<Settings>>> => {
+  const response = await apiClient.get<ApiResponse<Partial<Settings>>>('/api/settings/public');
   return response.data;
 };
 
