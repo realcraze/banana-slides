@@ -26,6 +26,12 @@ const previewI18n = {
       title: "预览", pageCount: "共 {{count}} 页", export: "导出",
       exportPptx: "导出为 PPTX", exportPdf: "导出为 PDF",
       exportEditablePptx: "导出可编辑 PPTX（Beta）", exportImages: "导出为图片",
+      editableExportConfirmTitle: "确认导出可编辑 PPTX",
+      editableExportConfirmBody: "可编辑 PPTX 导出会进行页面结构解析、元素识别和背景处理，通常耗时较长，也会消耗更多计算与接口资源。",
+      editableExportConfirmAdvice: "强烈建议在页面布局、主要内容和视觉效果基本确定后再执行此操作。",
+      editableExportConfirmQuestion: "确定现在开始导出吗？",
+      editableExportCancel: "取消",
+      editableExportConfirm: "确定导出",
       exportSelectedPages: "将导出选中的 {{count}} 页",
       regenerate: "重新生成", regenerating: "生成中...",
       editMode: "编辑模式", viewMode: "查看模式", page: "第 {{num}} 页",
@@ -93,6 +99,12 @@ const previewI18n = {
       title: "Preview", pageCount: "{{count}} pages", export: "Export",
       exportPptx: "Export as PPTX", exportPdf: "Export as PDF",
       exportEditablePptx: "Export Editable PPTX (Beta)", exportImages: "Export as Images",
+      editableExportConfirmTitle: "Confirm Editable PPTX Export",
+      editableExportConfirmBody: "Editable PPTX export performs page-structure parsing, element recognition, and background processing. It can take a long time and consume more compute and API resources.",
+      editableExportConfirmAdvice: "We strongly recommend running it only after the page layout, main content, and visual direction are mostly finalized.",
+      editableExportConfirmQuestion: "Start the export now?",
+      editableExportCancel: "Cancel",
+      editableExportConfirm: "Start Export",
       exportSelectedPages: "Will export {{count}} selected page(s)",
       regenerate: "Regenerate", regenerating: "Generating...",
       editMode: "Edit Mode", viewMode: "View Mode", page: "Page {{num}}",
@@ -214,6 +226,7 @@ export const SlidePreview: React.FC = () => {
   const [editOutlinePoints, setEditOutlinePoints] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showEditableExportConfirm, setShowEditableExportConfirm] = useState(false);
   const [showExportTasksPanel, setShowExportTasksPanel] = useState(false);
   // 多选导出相关状态
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
@@ -1054,6 +1067,16 @@ export const SlidePreview: React.FC = () => {
     }
   };
 
+  const requestEditablePptxExport = () => {
+    setShowExportMenu(false);
+    setShowEditableExportConfirm(true);
+  };
+
+  const confirmEditablePptxExport = () => {
+    setShowEditableExportConfirm(false);
+    void handleExport('editable-pptx');
+  };
+
   const handleRefresh = useCallback(async () => {
     const targetProjectId = projectId || currentProject?.id;
     if (!targetProjectId) {
@@ -1401,7 +1424,7 @@ export const SlidePreview: React.FC = () => {
                   {t('preview.exportPptx')}
                 </button>
                 <button
-                  onClick={() => handleExport('editable-pptx')}
+                  onClick={requestEditablePptxExport}
                   className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-background-hover transition-colors text-sm"
                 >
                   {t('preview.exportEditablePptx')}
@@ -2190,6 +2213,44 @@ export const SlidePreview: React.FC = () => {
       )}
 
       {/* 1K分辨率警告对话框 */}
+      <Modal
+        isOpen={showEditableExportConfirm}
+        onClose={() => setShowEditableExportConfirm(false)}
+        title={t('preview.editableExportConfirmTitle')}
+        size="md"
+      >
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50/90 via-white/90 to-banana-50/80 p-4 shadow-sm backdrop-blur-sm dark:border-amber-700/30 dark:from-amber-950/20 dark:via-background-secondary dark:to-banana-950/10">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-banana-400/20 text-amber-700 dark:text-banana">
+                <Download size={18} />
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm leading-6 text-gray-700 dark:text-foreground-secondary">
+                  {t('preview.editableExportConfirmBody')}
+                </p>
+                <p className="text-sm font-medium leading-6 text-gray-900 dark:text-foreground-primary">
+                  {t('preview.editableExportConfirmAdvice')}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-sm text-gray-600 dark:text-foreground-tertiary">
+            {t('preview.editableExportConfirmQuestion')}
+          </p>
+
+          <div className="flex justify-end gap-3 pt-1">
+            <Button variant="ghost" onClick={() => setShowEditableExportConfirm(false)}>
+              {t('preview.editableExportCancel')}
+            </Button>
+            <Button variant="primary" onClick={confirmEditablePptxExport} icon={<Download size={16} />}>
+              {t('preview.editableExportConfirm')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       <Modal
         isOpen={show1KWarningDialog}
         onClose={handleCancel1KWarning}
