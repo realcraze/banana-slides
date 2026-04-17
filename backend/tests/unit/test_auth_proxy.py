@@ -108,3 +108,71 @@ def test_create_project_records_creator_email(app, client):
         project = Project.query.get(project_id)
         assert project is not None
         assert project.created_by_email == 'user@company.com'
+
+
+def test_regular_user_only_lists_own_projects(app, client):
+    _set_proxy_auth(app)
+    with app.app_context():
+        own_project = Project(
+            creation_type='idea',
+            idea_prompt='Own project',
+            created_by_email='user@company.com',
+        )
+        other_project = Project(
+            creation_type='idea',
+            idea_prompt='Other project',
+            created_by_email='other@company.com',
+        )
+        legacy_project = Project(
+            creation_type='idea',
+            idea_prompt='Legacy project without owner',
+            created_by_email=None,
+        )
+        db.session.add_all([own_project, other_project, legacy_project])
+        db.session.commit()
+        own_project_id = own_project.id
+
+    response = client.get('/api/projects', headers={'X-Forwarded-Email': 'user@company.com'})
+
+    assert response.status_code == 200
+    body = response.get_json()['data']
+    assert body['total'] == 1
+    assert [project['project_id'] for project in body['projects']] == [own_project_id]
+
+
+def test_admin_lists_all_projects(app, client):
+    _set_proxy_auth(app)
+    with app.app_context():
+        db.session.add_all([
+            Project(creation_type='idea', idea_prompt='Admin project', created_by_email='admin@company.com'),
+            Project(creation_type='idea', idea_prompt='User project', created_by_email='user@company.com'),
+            Project(creation_type='idea', idea_prompt='Legacy project without owner', created_by_email=None),
+        ])
+        db.session.commit()
+
+    response = client.get('/api/projects', headers={'X-Forwarded-Email': 'admin@company.com'})
+
+    assert response.status_code == 200
+    body = response.get_json()['data']
+    assert body['total'] == 3
+    assert len(body['projects']) == 3
+
+
+def test_regular_user_cannot_get_other_users_project(app, client):
+    _set_proxy_auth(app)
+    with app.app_context():
+        project = Project(
+            creation_type='idea',
+            idea_prompt='Private project',
+            created_by_email='other@company.com',
+        )
+        db.session.add(project)
+        db.session.commit()
+        project_id = project.id
+
+    response = client.get(
+        f'/api/projects/{project_id}',
+        headers={'X-Forwarded-Email': 'user@company.com'},
+    )
+
+    assert response.status_code == 403

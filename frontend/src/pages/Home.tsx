@@ -203,7 +203,7 @@ export const Home: React.FC = () => {
   const [isFileSelectorOpen, setIsFileSelectorOpen] = useState(false);
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
 
-  const [useTemplateStyle, setUseTemplateStyle] = useState(false);
+  const [useTemplateStyle, setUseTemplateStyle] = useState(true);
   const [templateStyle, setTemplateStyle] = useState('');
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [isAspectRatioOpen, setIsAspectRatioOpen] = useState(false);
