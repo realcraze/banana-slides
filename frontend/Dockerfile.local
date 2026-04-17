@@ -1,0 +1,26 @@
+# Local OAuth-enabled frontend container. This is intentionally Caddy, not Nginx.
+ARG DOCKER_REGISTRY=
+ARG NPM_REGISTRY=
+
+FROM ${DOCKER_REGISTRY:-}node:18-alpine AS builder
+
+ARG NPM_REGISTRY=
+
+WORKDIR /app
+
+COPY frontend/package.json ./
+COPY frontend/package-lock.json* ./
+RUN if [ -n "$NPM_REGISTRY" ]; then \
+        npm config set registry "$NPM_REGISTRY"; \
+    fi && \
+    (npm install --frozen-lockfile || npm install)
+
+COPY frontend/ ./
+RUN npm run build
+
+FROM ${DOCKER_REGISTRY:-}caddy:2.8-alpine
+
+COPY frontend/Caddyfile.local /etc/caddy/Caddyfile
+COPY --from=builder /app/dist /srv
+
+EXPOSE 80
