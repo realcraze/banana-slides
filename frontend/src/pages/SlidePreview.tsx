@@ -218,7 +218,7 @@ export const SlidePreview: React.FC = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-  const [useTextStyleMode, setUseTextStyleMode] = useState(false);
+  const [useTextStyleMode, setUseTextStyleMode] = useState(true);
   const [draftTemplateStyle, setDraftTemplateStyle] = useState('');
   const [editPrompt, setEditPrompt] = useState('');
   // 大纲和描述编辑状态
