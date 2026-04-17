@@ -79,8 +79,9 @@ services:
       - --oidc-issuer-url=https://login.microsoftonline.com/${OAUTH2_PROXY_TENANT_ID}/v2.0
       - --scope=openid profile email User.Read
       - --cookie-secure=false
-      - --pass-access-token=true
-      - --pass-authorization-header=true
+      - --session-cookie-minimal=true
+      - --pass-access-token=false
+      - --pass-authorization-header=false
       - --pass-user-headers=true
       - --pass-basic-auth=false
       - --skip-provider-button=true
