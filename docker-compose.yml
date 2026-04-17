@@ -75,10 +75,14 @@ services:
       - --client-id=${OAUTH2_PROXY_CLIENT_ID}
       - --client-secret=${OAUTH2_PROXY_CLIENT_SECRET}
       - --cookie-secret=${OAUTH2_PROXY_COOKIE_SECRET}
+      - --cookie-name=banana_slides_oauth2
       - --email-domain=${OAUTH2_PROXY_EMAIL_DOMAIN}
       - --oidc-issuer-url=https://login.microsoftonline.com/${OAUTH2_PROXY_TENANT_ID}/v2.0
+      - --oidc-email-claim=preferred_username
       - --scope=openid profile email User.Read
       - --cookie-secure=false
+      - --cookie-csrf-per-request=true
+      - --cookie-csrf-per-request-limit=5
       - --session-cookie-minimal=true
       - --pass-access-token=false
       - --pass-authorization-header=false
