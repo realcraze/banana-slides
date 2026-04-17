@@ -53,7 +53,7 @@ banana-cli = "cli.banana_cli.__main__:main"
 include = ["cli*"]
 
 [tool.uv]
-index-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default-index = "https://pypi.org/simple"
 
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
